@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import curses
-# import random
+import random
 import time
 from curses import wrapper
 
@@ -16,7 +16,7 @@ def draw_snake(snake_box, snake_pixel):
         snake_box.addstr(y, x, "*")
 
 def walk_snake(snake_pixels, snake_dir):
-    """Updae snake_pixels as to walk in snake direction."""
+    """Update snake_pixels as to walk in snake direction."""
     head = snake_pixels[-1]
     new_head = (head[0] + snake_dir[0], head[1] + snake_dir[1])
     snake_pixels.append(new_head)
@@ -33,10 +33,20 @@ def test_collision(snake_box, snake_pixels):
         return True
     return len(snake_pixels) != len(set(snake_pixels))
 
+def food_eaten(snake_pixels, food_pixel, snake_dir):
+    """Check if food has been eaten if so increment length of snake."""
+    head = snake_pixels[-1]
+    if head == food_pixel:
+        new_head = (head[0] + snake_dir[0], head[1] + snake_dir[1])
+        snake_pixels.append(new_head)
+        return True
+    return False
+
 def start(stdscr):
     """Function to initialise box drawing."""
     current_score = 0
     snake_pixels = [(1, 1), (2, 1), (3, 1)]
+    food_pixel = (5, 5)
     snake_dir = (1, 0)
     total_height, total_width = stdscr.getmaxyx()
     start_x = total_width // 5
@@ -44,17 +54,18 @@ def start(stdscr):
     start_y = 12
     end_y = total_height - 3
     snake_box = curses.newwin(end_y - start_y, end_x - start_x, start_y, start_x)
+    snake_box_height, snake_box_width = snake_box.getmaxyx()
     snake_box.border()
     stdscr.nodelay(True)
     while True:
         draw_snake(snake_box, snake_pixels)
+        snake_box.addstr(food_pixel[1], food_pixel[0], "*")
+        if food_eaten(snake_pixels, food_pixel, snake_dir):
+            current_score += 1
+            food_pixel = (random.randint(1, snake_box_width-1), random.randint(1, snake_box_height-1))
         print_score(stdscr, current_score, total_height, total_width)
         snake_box.refresh()
         snake_box.clear()
-        stdscr.refresh()
-        walk_snake(snake_pixels, snake_dir)
-        if test_collision(snake_box, snake_pixels):
-            break
         c = stdscr.getch()
         if c == ord("j"):
             snake_dir = (0, 1)
@@ -64,7 +75,11 @@ def start(stdscr):
             snake_dir = (-1, 0)
         elif c == ord("l"):
             snake_dir = (1, 0)
-        time.sleep(0.1)
+        stdscr.refresh()
+        walk_snake(snake_pixels, snake_dir)
+        if test_collision(snake_box, snake_pixels):
+            break
+        time.sleep(0.3)
 
 def main(stdscr):
     """Main Function."""
@@ -81,16 +96,13 @@ def main(stdscr):
     curses.curs_set(False)
     stdscr.refresh()
     while True:
-        # stdscr.nodelay(False)
+        stdscr.nodelay(False)
         key = stdscr.getch()
         return_pressed = key == curses.KEY_ENTER or key == 10 or key == 13
-        # stdscr.addstr(str(return_pressed))
         if return_pressed:
             start(stdscr)
-            # break
-
-    # stdscr.refresh()
-    # stdscr.getch()
+        else:
+            break
 
 if __name__ == "__main__":
     wrapper(main)
